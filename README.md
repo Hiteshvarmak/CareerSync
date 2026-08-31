@@ -4,6 +4,22 @@ AI multi-agent companion for students and job seekers. A LangGraph
 orchestrator routes requests to specialized agents that plan your day,
 track your job hunt, close skill gaps, and run mock interviews.
 
+## Why this exists
+
+We all accumulate useful information — ideas, resources, notes on what
+we've done — scattered across notes apps, saved messages, documents, and
+screenshots. The problem usually isn't a lack of information; it's that
+retrieval requires remembering the exact keyword you filed it under, not
+just the idea. If you only remember *what* you did, not the words you
+used to describe it, keyword search fails you.
+
+The Skill-Gap Agent is a working instance of the fix: it embeds your
+resume and target job postings into a vector store (Chroma) and matches
+by semantic similarity, not exact terms. A job posting asking for
+"stakeholder communication" can match a resume line that says "presented
+findings to leadership" — same idea, different words. That's retrieval
+by meaning instead of by memory.
+
 ## Architecture
 
 | Agent | Responsibility |
