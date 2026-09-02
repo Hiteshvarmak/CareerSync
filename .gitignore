@@ -5,6 +5,9 @@ venv/
 .env
 data/*.db
 data/*.sqlite3
+data/chroma/
+data/gmail_token.json
+backend/credentials.json
 .DS_Store
 node_modules/
 *.egg-info/

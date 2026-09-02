@@ -2,12 +2,14 @@
 
 from dotenv import load_dotenv
 
+from backend.db import init_db
 from backend.graph import build_graph
 
 load_dotenv()
 
 
 def main() -> None:
+    init_db()
     app = build_graph()
     print("CareerPilot orchestrator skeleton. Type 'quit' to exit.")
     while True:

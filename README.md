@@ -30,20 +30,26 @@ by meaning instead of by memory.
 | Mock Interview | Runs a text/voice mock interview and scores answers |
 | Orchestrator | Routes requests to the right agent, owns shared state (LangGraph) |
 
-Only the orchestrator and stubbed agent nodes exist so far — see
-`backend/graph.py`. Each agent's real implementation lands in its own
-phase (see the phased build plan below).
+All four agents are implemented and wired into the orchestrator — see
+`backend/graph.py` for routing and `backend/agents/` for each agent.
 
 ## Project layout
 
 ```
 backend/
-  agents/       # per-agent implementations (added phase by phase)
-  models.py     # shared LangGraph state schema
-  graph.py      # orchestrator: router + agent nodes
-  main.py       # CLI loop for local development
-frontend/       # dashboard (Streamlit or React) - added in later phases
-data/           # local SQLite DB, sample PDFs
+  agents/
+    planner.py    # PDF/text -> structured task list (backend/agents/planner.py)
+    tracker.py    # Gmail read-only sync + application status classification
+    skill_gap.py  # Chroma-backed resume/job-posting RAG
+    interview.py  # multi-turn mock interview + rubric scoring
+  db.py          # SQLAlchemy models (Task, Application, InterviewSession)
+  models.py      # shared LangGraph state schema
+  graph.py       # orchestrator: router + agent nodes
+  main.py        # CLI loop for local development
+  scheduler.py   # APScheduler daily digest job
+frontend/
+  dashboard.py   # Streamlit dashboard (tasks, Kanban board, skill gap, interview)
+data/            # local SQLite DB, Chroma store (gitignored)
 tests/
 ```
 
@@ -56,10 +62,29 @@ pip install -r requirements.txt
 cp .env.example .env  # fill in ANTHROPIC_API_KEY
 ```
 
+### Gmail setup (for the Application Tracker agent)
+
+The tracker needs read-only Gmail access, which requires *your own*
+Google Cloud OAuth client — this can't be shared/pre-provisioned:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a
+   project, enable the **Gmail API**, and create an **OAuth client ID**
+   (type: Desktop app).
+2. Download the client secret JSON and save it as `backend/credentials.json`
+   (gitignored — never commit this file).
+3. First call to `tracker.sync_applications()` (or the dashboard's "Sync
+   from Gmail" button) opens a browser to authorize; the token is cached
+   at `data/gmail_token.json`.
+
+Everything else (Planner, Skill-Gap, Mock Interview) only needs the
+Anthropic API key.
+
 ## Run
 
 ```bash
-python -m backend.main
+python -m backend.main          # CLI chat loop
+streamlit run frontend/dashboard.py   # dashboard
+python -m backend.scheduler     # daily digest, runs on a cron schedule
 ```
 
 ## Test
@@ -68,10 +93,20 @@ python -m backend.main
 pytest
 ```
 
-## Phased build plan
+## Deployment
 
-1. **MVP:** Planner Agent + manual task input, simple dashboard, no external integrations.
-2. **Phase 2:** Application Tracker Agent with Gmail API (read-only), persistent DB, daily digest.
-3. **Phase 3:** Skill-Gap Agent with RAG over job descriptions + resume upload.
-4. **Phase 4:** Mock Interview Agent, text-based first, voice via Whisper as a stretch goal.
-5. **Polish:** Dashboard UI, architecture diagram, deployed demo.
+Not yet deployed — this needs hosting accounts (e.g. Render for the
+backend/scheduler, Streamlit Community Cloud or Vercel for the
+dashboard) and their own environment secrets, so it's a manual step
+rather than something to automate blind. Suggested path: containerize
+`backend/` behind a small FastAPI wrapper, deploy the dashboard
+separately pointing at it, and set `ANTHROPIC_API_KEY` /
+`CAREERPILOT_DB_URL` as platform secrets.
+
+## Build plan status
+
+1. ✅ **MVP:** Planner Agent + manual task input, dashboard.
+2. ✅ **Phase 2:** Application Tracker Agent with Gmail API (read-only), persistent DB, daily digest.
+3. ✅ **Phase 3:** Skill-Gap Agent with RAG over job descriptions + resume upload.
+4. ✅ **Phase 4:** Mock Interview Agent, text-based.
+5. 🔲 **Polish:** deployed demo (needs your hosting accounts, see Deployment above); voice via Whisper remains a stretch goal.

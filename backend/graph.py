@@ -10,6 +10,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage
 from langgraph.graph import END, START, StateGraph
 
+from backend.agents import interview, planner, skill_gap, tracker
 from backend.models import AgentName, CareerPilotState
 
 ROUTER_SYSTEM_PROMPT = """You route a user message to exactly one CareerPilot agent.
@@ -42,15 +43,10 @@ def route(state: CareerPilotState) -> CareerPilotState:
     return {"active_agent": active_agent}
 
 
-def _stub_agent(name: str):
+def _agent_node(handle_message):
     def node(state: CareerPilotState) -> CareerPilotState:
         last_user_message = state["messages"][-1].content
-        reply = AIMessage(
-            content=(
-                f"[{name} agent stub] Not implemented yet. "
-                f"You said: {last_user_message!r}"
-            )
-        )
+        reply = AIMessage(content=handle_message(last_user_message))
         return {"messages": [reply]}
 
     return node
@@ -72,10 +68,10 @@ def build_graph():
     graph = StateGraph(CareerPilotState)
 
     graph.add_node("route", route)
-    graph.add_node("planner", _stub_agent("planner"))
-    graph.add_node("tracker", _stub_agent("tracker"))
-    graph.add_node("skill_gap", _stub_agent("skill_gap"))
-    graph.add_node("interview", _stub_agent("interview"))
+    graph.add_node("planner", _agent_node(planner.handle_message))
+    graph.add_node("tracker", _agent_node(tracker.handle_message))
+    graph.add_node("skill_gap", _agent_node(skill_gap.handle_message))
+    graph.add_node("interview", _agent_node(interview.handle_message))
     graph.add_node("unknown", _fallback)
 
     graph.add_edge(START, "route")

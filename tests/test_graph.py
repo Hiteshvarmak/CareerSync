@@ -5,10 +5,12 @@ from langchain_core.messages import AIMessage
 from backend.graph import build_graph
 
 
-def test_route_to_planner_stub():
-    app = build_graph()
-    with patch("backend.graph._get_router_llm") as mock_llm:
-        mock_llm.return_value.invoke.return_value = AIMessage(content="planner")
+def test_route_to_planner_calls_planner_agent():
+    with patch("backend.graph._get_router_llm") as mock_router, patch(
+        "backend.agents.planner.handle_message", return_value="planner reply"
+    ):
+        mock_router.return_value.invoke.return_value = AIMessage(content="planner")
+        app = build_graph()
         result = app.invoke(
             {
                 "messages": [("human", "what's on my plate today?")],
@@ -16,13 +18,13 @@ def test_route_to_planner_stub():
             }
         )
     assert result["active_agent"] == "planner"
-    assert "[planner agent stub]" in result["messages"][-1].content
+    assert result["messages"][-1].content == "planner reply"
 
 
 def test_unrecognized_route_falls_back():
     app = build_graph()
-    with patch("backend.graph._get_router_llm") as mock_llm:
-        mock_llm.return_value.invoke.return_value = AIMessage(content="something else")
+    with patch("backend.graph._get_router_llm") as mock_router:
+        mock_router.return_value.invoke.return_value = AIMessage(content="something else")
         result = app.invoke(
             {"messages": [("human", "hello")], "active_agent": "unknown"}
         )

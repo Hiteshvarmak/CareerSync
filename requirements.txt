@@ -7,3 +7,5 @@ pypdf>=4
 chromadb>=0.5
 streamlit>=1.35
 apscheduler>=3.10
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.140
